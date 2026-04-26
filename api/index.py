@@ -40,12 +40,16 @@ def ensure_pandoc():
         with tarfile.open(tar_path, "r:gz") as tar:
             tar.extractall(path="/tmp")
         
-        # Move binary
-        extracted_bin = "/tmp/pandoc-3.1.1/bin/pandoc"
-        if os.path.exists(extracted_bin):
-            shutil.move(extracted_bin, PANDOC_PATH)
-            os.chmod(PANDOC_PATH, 0o755)
-            return PANDOC_PATH
+        # Move binary - check for both possible folder names
+        possible_bins = [
+            "/tmp/pandoc-3.1.1/bin/pandoc",
+            "/tmp/pandoc-3.1.1-linux-amd64/bin/pandoc"
+        ]
+        for extracted_bin in possible_bins:
+            if os.path.exists(extracted_bin):
+                shutil.move(extracted_bin, PANDOC_PATH)
+                os.chmod(PANDOC_PATH, 0o755)
+                return PANDOC_PATH
     except Exception as e:
         print(f"Failed to download pandoc: {e}")
     
@@ -55,6 +59,8 @@ def ensure_pandoc():
 @app.get("/api/health")
 @app.get("/health")
 def health():
+    # Proactively ensure pandoc is here when they check health
+    pandoc_exe = ensure_pandoc()
     return {"status": "ok", "pandoc": bool(shutil.which("pandoc") or os.path.exists(PANDOC_PATH))}
 
 @app.post("/api/convert")
