@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 import os
 import shutil
 import tempfile
@@ -54,6 +54,16 @@ def ensure_pandoc():
         print(f"Failed to download pandoc: {e}")
     
     return None
+
+@app.get("/", response_class=HTMLResponse)
+def index():
+    try:
+        # Get the path to public/index.html relative to this file
+        index_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public", "index.html")
+        with open(index_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        return f"<h1>Frontend error</h1><p>{e}</p>"
 
 @app.get("/api/health")
 @app.get("/health")
