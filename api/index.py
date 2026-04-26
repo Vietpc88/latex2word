@@ -55,7 +55,6 @@ def ensure_pandoc():
     
     return None
 
-@app.get("/")
 @app.get("/api/health")
 @app.get("/health")
 def health():
