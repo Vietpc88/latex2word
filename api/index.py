@@ -51,11 +51,14 @@ def ensure_pandoc():
     
     return None
 
+@app.get("/")
 @app.get("/api/health")
+@app.get("/health")
 def health():
-    return {"status": "ok", "pandoc": shutil.which("pandoc") or os.path.exists(PANDOC_PATH)}
+    return {"status": "ok", "pandoc": bool(shutil.which("pandoc") or os.path.exists(PANDOC_PATH))}
 
 @app.post("/api/convert")
+@app.post("/convert")
 async def convert(
     file: UploadFile = File(...),
     mode: str = Form(...)
