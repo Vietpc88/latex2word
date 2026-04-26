@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeX to Word Converter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            background: var(--card);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border-radius: 1rem;
+            text-align: center;
+        }
+        h1 { font-weight: 600; margin-bottom: 0.5rem; color: var(--primary); }
+        p { color: #64748b; margin-bottom: 2rem; }
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1.5rem;
+        }
+        .upload-area:hover { border-color: var(--primary); background: #eff6ff; }
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: var(--primary-hover); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        #status { margin-top: 1rem; font-size: 0.875rem; }
+        .loading { display: none; margin: 10px auto; border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TeX Math to Word</h1>
+        <p>Convert LaTeX, Markdown or BibTeX online</p>
+        
+        <form id="convertForm">
+            <div class="upload-area" id="dropZone">
+                <input type="file" id="fileInput" hidden required>
+                <span id="fileName">Drop file here or click to upload</span>
+            </div>
+            
+            <select id="modeSelect">
+                <option value="latex">LaTeX (.tex)</option>
+                <option value="markdown">Markdown (.md)</option>
+                <option value="bibtex">BibTeX (.bib)</option>
+            </select>
+            
+            <button type="submit" id="submitBtn">Convert Now</button>
+        </form>
+        
+        <div class="loading" id="loader"></div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const form = document.getElementById('convertForm');
+        const status = document.getElementById('status');
+        const loader = document.getElementById('loader');
+        const submitBtn = document.getElementById('submitBtn');
+
+        dropZone.onclick = () => fileInput.click();
+        
+        fileInput.onchange = () => {
+            if (fileInput.files.length > 0) {
+                fileName.textContent = fileInput.files[0].name;
+                // Auto select mode based on extension
+                const ext = fileInput.files[0].name.split('.').pop().toLowerCase();
+                if (ext === 'tex') document.getElementById('modeSelect').value = 'latex';
+                if (ext === 'md') document.getElementById('modeSelect').value = 'markdown';
+                if (ext === 'bib') document.getElementById('modeSelect').value = 'bibtex';
+            }
+        };
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const file = fileInput.files[0];
+            const mode = document.getElementById('modeSelect').value;
+            
+            if (!file) return;
+
+            status.textContent = 'Processing... This might take 30s as Pandoc is being set up.';
+            loader.style.display = 'block';
+            submitBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('mode', mode);
+
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = file.name.split('.')[0] + '.docx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    status.textContent = '✅ Success! Your download should start shortly.';
+                } else {
+                    const err = await response.json();
+                    status.textContent = '❌ Error: ' + (err.detail || 'Conversion failed');
+                }
+            } catch (e) {
+                status.textContent = '❌ Error: Could not connect to server';
+            } finally {
+                loader.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+python-docx>=0.8.10
+bibtexparser>=1.4.0
+streamlit
+fastapi
+python-multipart
+uvicorn
